@@ -1,20 +1,16 @@
-const { Meta, St, GObject } = imports.gi;
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import Meta from 'gi://Meta';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
-const Main = imports.ui.main;
-const PanelMenu = imports.ui.panelMenu;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-
-// https://discourse.gnome.org/t/retrieve-api-version-in-a-gnome-shell-extension/25623
-const gnomeAPIVersion = Number(imports.misc.config.LIBMUTTER_API_VERSION);
-
-let settings;
-let restartButton;
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const RestartButton = GObject.registerClass(
 class RestartButton extends PanelMenu.Button {
-    _init() {
-        super._init();
+    _init(extension) {
+        super._init(0.0, 'Shell Restarter');
+        this._extension = extension;
 
         this.button = new St.Icon({
             icon_name : 'view-refresh-symbolic',
@@ -22,45 +18,31 @@ class RestartButton extends PanelMenu.Button {
             reactive: true,
         });
 
-        this.button.connect('button-press-event', restart);
+        this.button.connect('button-press-event', () => this._restart());
 
-        if ((typeof this.add_child) === 'function')
-            this.add_child(this.button);
-        else
-            this.actor.add_actor(this.button);	// deprecated in newer GNOME versions
-
-        Main.panel.addToStatusArea('shell-restarter', this);
+        this.add_child(this.button);
     }
 
-    destroy() {
-        this.button.destroy();
-        super.destroy();
+    _restart() {
+        const settings = this._extension.getSettings();
+        const restartMessage = settings.get_string('restart-message') || "Restarting...";
+        
+        try {
+            Meta.restart(restartMessage, global.context);
+        } catch (_e) {
+            Meta.restart(restartMessage);
+        }
     }
 });
 
-function restart() {
-    // Don't allow blank restart message - or maybe it should?
-    // doesn't show in gnome 40 (+?) for me
-    const restartMessage = settings.get_string('restart-message') || "Restarting...";
-    // Meta.restart API changed in gnome API v11
-    if (gnomeAPIVersion < 11) {
-        Meta.restart(restartMessage);
-    } else {
-        Meta.restart(restartMessage, global.context);
+export default class ShellRestarterExtension extends Extension {
+    enable() {
+        this._restartButton = new RestartButton(this);
+        Main.panel.addToStatusArea('shell-restarter', this._restartButton);
     }
-}
 
-function init() {
-}
-
-function enable() {
-    settings = ExtensionUtils.getSettings();
-    restartButton = new RestartButton();
-}
-
-function disable() {
-    settings = null;
-
-    restartButton.destroy();
-    restartButton = null;
+    disable() {
+        this._restartButton.destroy();
+        this._restartButton = null;
+    }
 }

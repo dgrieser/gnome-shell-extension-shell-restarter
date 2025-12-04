@@ -1,60 +1,32 @@
-const { Gio, Gtk } = imports.gi;
+import Adw from 'gi://Adw';
+import Gtk from 'gi://Gtk';
+import Gio from 'gi://Gio';
+import {ExtensionPreferences} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const settings = ExtensionUtils.getSettings();
+export default class ShellRestarterPreferences extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        const settings = this.getSettings();
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: 'Shell Restarter',
+            description: 'Customize the message shown before the shell restarts.',
+        });
 
-const Config = imports.misc.config;
-const [major] = Config.PACKAGE_VERSION.split('.');
-const shellVersion = Number.parseInt(major);
+        const entryRow = new Adw.EntryRow({
+            title: 'Restart message',
+            text: settings.get_string('restart-message'),
+        });
+        settings.bind('restart-message', entryRow, 'text', Gio.SettingsBindFlags.DEFAULT);
 
-function init() {
-}
+        const resetButton = new Gtk.Button({ label: 'Reset to default' });
+        if (resetButton.add_css_class) {
+            resetButton.add_css_class('flat');
+        }
+        resetButton.connect('clicked', () => settings.reset('restart-message'));
+        entryRow.add_suffix(resetButton);
 
-function buildPrefsWidget() {
-    let prefsWidget = new Gtk.Grid({
-        ...{
-            column_spacing: 12,
-            row_spacing: 12,
-            column_homogeneous: true,
-        },
-        ...(shellVersion >= 40 ?
-            {
-                margin_top: 18,
-                margin_bottom: 18,
-                margin_start: 18,
-                margin_end: 18,
-            }
-            :
-            {
-                margin: 18,
-            }
-        ),
-    });
-
-    let label = new Gtk.Label({
-        label: 'Restart message: (may not show on Gnome 40+)',
-        halign: Gtk.Align.START,
-    });
-
-    let entry = new Gtk.Entry({
-        text: settings.get_string('restart-message'),
-        halign: Gtk.Align.END,
-    });
-
-    let defaultButton = new Gtk.Button({
-        label: 'Reset to default',
-    });
-
-    defaultButton.connect('clicked', () => {
-        settings.set_string('restart-message', 'Restarting...');
-    });
-
-    prefsWidget.attach(label, column = 0, row = 0, width = 1, height = 1);
-    prefsWidget.attach(entry, 1, 0, 1, 1);
-
-    prefsWidget.attach(defaultButton, 0, 1, 2, 1);
-
-    settings.bind('restart-message', entry, 'text', Gio.SettingsBindFlags.DEFAULT);
-
-    return prefsWidget;
+        group.add(entryRow);
+        page.add(group);
+        window.add(page);
+    }
 }
