@@ -7,8 +7,52 @@ export default class ShellRestarterPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
         const page = new Adw.PreferencesPage();
-        const group = new Adw.PreferencesGroup({
-            title: 'Shell Restarter',
+
+        // General Settings Group
+        const generalGroup = new Adw.PreferencesGroup({
+            title: 'General',
+        });
+
+        // Show Indicator Switch
+        const showIndicatorRow = new Adw.SwitchRow({
+            title: 'Show reload button',
+            subtitle: 'Display the restart button in the top bar',
+        });
+        settings.bind('show-indicator', showIndicatorRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        generalGroup.add(showIndicatorRow);
+
+        // DBus Interface Switch
+        const enableDbusRow = new Adw.SwitchRow({
+            title: 'Enable DBus interface',
+            subtitle: 'Allow triggering restart via DBus/Terminal',
+        });
+        settings.bind('enable-dbus', enableDbusRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        generalGroup.add(enableDbusRow);
+
+        page.add(generalGroup);
+
+        // Command Line Usage Group
+        const commandGroup = new Adw.PreferencesGroup({
+            title: 'Command Line Usage',
+            description: 'The DBus command to trigger a shell restart from the terminal. You can copy this text directly.',
+        });
+        settings.bind('enable-dbus', commandGroup, 'sensitive', Gio.SettingsBindFlags.DEFAULT);
+
+        const commandText = 'gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell/Extensions/ShellRestarter --method org.gnome.Shell.Extensions.ShellRestarter.Restart';
+
+        const commandRow = new Adw.EntryRow({
+            title: 'DBus Command',
+            text: commandText,
+            editable: false
+        });
+
+        // The user can select and copy the text directly from the EntryRow
+        commandGroup.add(commandRow);
+        page.add(commandGroup);
+
+        // Message Settings Group
+        const messageGroup = new Adw.PreferencesGroup({
+            title: 'Message',
             description: 'Customize the message shown before the shell restarts.',
         });
 
@@ -25,8 +69,9 @@ export default class ShellRestarterPreferences extends ExtensionPreferences {
         resetButton.connect('clicked', () => settings.reset('restart-message'));
         entryRow.add_suffix(resetButton);
 
-        group.add(entryRow);
-        page.add(group);
+        messageGroup.add(entryRow);
+        page.add(messageGroup);
+
         window.add(page);
     }
 }

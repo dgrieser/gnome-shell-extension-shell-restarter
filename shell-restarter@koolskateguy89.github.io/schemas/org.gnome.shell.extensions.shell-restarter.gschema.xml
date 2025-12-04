@@ -6,5 +6,15 @@
       <default>'Restarting...'</default>
     </key>
 
+    <key name="show-indicator" type="b">
+      <default>true</default>
+      <summary>Show reload button in top bar</summary>
+    </key>
+
+    <key name="enable-dbus" type="b">
+      <default>true</default>
+      <summary>Register DBus interface</summary>
+    </key>
+
   </schema>
 </schemalist>
